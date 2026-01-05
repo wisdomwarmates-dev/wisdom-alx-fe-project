@@ -2,6 +2,14 @@ import { useState } from 'react';
 import Navbar from './components/NavBar';  // ✅ Fixed: added 's'
 import SearchDestinations from './components/SearchDestinations';  // ✅ Fixed: added 's'
 
+const testKey = import.meta.env.VITE_AMADEUS_API_KEY || 'HARDCODED_FALLBACK';
+const testWeather = import.meta.env.VITE_WEATHER_API_KEY || 'HARDCODED_WEATHER';
+
+
+console.log('Testing API Keys:');
+console.log('Amadeus Key:', import.meta.env.VITE_AMADEUS_API_KEY);
+console.log('Weather Key:', import.meta.env.VITE_WEATHER_API_KEY);
+
 function App() {
   const [selectedDestination, setSelectedDestination] = useState(null);
 
