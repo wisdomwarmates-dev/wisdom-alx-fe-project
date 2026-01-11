@@ -1,25 +1,29 @@
+
+
 export const mockDestinations = [{
     id: 1,
     city: 'paris',
     country: "France", 
-    image:'https://share.google/SvdorSYQcLhfIWYfy',
+    image:'/images/paris_1.jpg',
     attraction: ['Eiffel Tower', 'Louvre Museum', 'Notre-Dame'],
-    description: 'the City of Light'
+    description: 'the City of Light',
+    cityCode: 'PAR'
 
 },
 {
     id:2,
     city:"Kyoto",
     country:"Japan",
-    image: 'https://share.google/Rzt3cpSre3tQlAUtO',
+    image: '/images/tokyo_1.jpg',
     attraction: ['Fushimi Inari Shrine', 'Kiyomizu Temple', 'Arashiyama'],
-    description:'Ancient temples and gardens'
+    description:'Ancient temples and gardens',
+    cityCode: 'KYO'
 },
 {
     id: 3,
     city:'New York',
     country:'USA',
-    image:'https://share.google/9OyiUcnhFXGrk62C3',
+    image:'/images/newYork_1.jpg',
     attraction: ['Statue of Liberty', 'Central Park', 'Times Square'],
     description: 'The city that never sleeps'
 }
