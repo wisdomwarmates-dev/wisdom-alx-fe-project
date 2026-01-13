@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCurrentWeather, getWeatherForecast } from '../services/weatherAPI';
-
+import { searchFlights, searchHotels } from '../services/amadeusAPI';
 
 function DestinationDetails({ destination, onClose, onAddToTrip }) {
   const [activeTab, setActiveTab] = useState('attractions');
@@ -132,47 +132,127 @@ function AttractionsTab({ destination }) {
   );
 }
 
-
 function FlightsTab({ destination, onAddToTrip }) {
-  const mockFlights = [
-    {
-      id: 'flight-1',
-      airline: 'British Airways',
-      price: 350,
-      departure: 'LHR',
-      arrival: destination.city.substring(0, 3).toUpperCase(),
-      duration: '2h 15m'
-    },
-    {
-      id: 'flight-2',
-      airline: 'Air France',
-      price: 420,
-      departure: 'CDG',
-      arrival: destination.city.substring(0, 3).toUpperCase(),
-      duration: '1h 45m'
-    }
-  ];
+  const [flights, setFlights] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [usingMockData, setUsingMockData] = useState(false);
+
+  useEffect(() => {
+    const fetchFlights = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setUsingMockData(false);
+
+        
+        const airportMap = {
+          'Paris': 'CDG',
+          'Kyoto': 'KIX',
+          'New York': 'JFK',
+          'London': 'LHR',
+          'Tokyo': 'NRT',
+          'Dubai': 'DXB',
+          'Singapore': 'SIN'
+        };
+
+        const destCode = airportMap[destination.city] || 
+                        destination.cityCode || 
+                        destination.city.substring(0, 3).toUpperCase();
+        
+        console.log(`🔍 Searching: LHR → ${destCode}`);
+        
+        const flightData = await searchFlights('LHR', destCode);
+        
+        if (flightData.length === 0) {
+          console.log('⚠️ Using example data');
+          setUsingMockData(true);
+          setFlights([
+            {
+              id: 'example-1',
+              airline: 'British Airways',
+              price: 350,
+              departure: 'LHR',
+              arrival: destCode,
+              duration: '2h 15m',
+              departureTime: '09:30 AM',
+              arrivalTime: '12:45 PM'
+            },
+            {
+              id: 'example-2',
+              airline: 'Air France',
+              price: 420,
+              departure: 'LHR',
+              arrival: destCode,
+              duration: '2h 30m',
+              departureTime: '11:00 AM',
+              arrivalTime: '02:30 PM'
+            }
+          ]);
+        } else {
+          setFlights(flightData);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setError('Unable to load flights');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFlights();
+  }, [destination]);
 
   const handleAddFlight = (flight) => {
-    
     if (onAddToTrip) {
       onAddToTrip({
         ...flight,
         type: 'flight',
         name: `${flight.airline} - ${flight.departure} to ${flight.arrival}`,
-        details: `Duration: ${flight.duration}`,
-        date: 'Select date'
+        details: `${flight.departureTime} - ${flight.arrivalTime} • ${flight.duration}`,
+        date: 'Departure in 7 days'
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">✈️</div>
+        <p className="text-gray-600">Searching for flights...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">✈️</div>
+        <p className="text-gray-600">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <h3 className="text-2xl font-bold text-gray-800 mb-4">
         Flights to {destination.city}
       </h3>
+      
+      {usingMockData && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-yellow-800">
+            ℹ️ Example data shown. Amadeus test API has limited routes.
+          </p>
+        </div>
+      )}
+      
+      <p className="text-sm text-gray-600 mb-4">
+        Departing in 7 days from London (LHR)
+      </p>
+      
       <div className="space-y-4">
-        {mockFlights.map((flight) => (
+        {flights.map((flight) => (
           <div
             key={flight.id}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition"
@@ -182,7 +262,10 @@ function FlightsTab({ destination, onAddToTrip }) {
               <div>
                 <p className="font-semibold text-gray-800">{flight.airline}</p>
                 <p className="text-sm text-gray-500">
-                  {flight.departure} → {flight.arrival} • {flight.duration}
+                  {flight.departure} → {flight.arrival}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {flight.departureTime} - {flight.arrivalTime} • {flight.duration}
                 </p>
               </div>
             </div>
@@ -192,7 +275,7 @@ function FlightsTab({ destination, onAddToTrip }) {
               </span>
               <button
                 onClick={() => handleAddFlight(flight)}
-                className="bg-secondary text-white px-4 py-2 rounded bg-blue-700 transition"
+                className="bg-secondary text-white px-4 py-2 rounded hover:bg-blue-700 transition"
               >
                 Add to Trip
               </button>
@@ -204,42 +287,155 @@ function FlightsTab({ destination, onAddToTrip }) {
   );
 }
 
-
 function HotelsTab({ destination, onAddToTrip }) {
-  const mockHotels = [
-    {
-      id: 'hotel-1',
-      name: `Hotel Le ${destination.city}`,
-      price: 120,
-      rating: 4.5
-    },
-    {
-      id: 'hotel-2',
-      name: `Grand ${destination.city} Hotel`,
-      price: 175,
-      rating: 4.8
-    }
-  ];
+  const [hotels, setHotels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [usingMockData, setUsingMockData] = useState(false);
+
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setUsingMockData(false);
+
+        
+        const cityCodeMap = {
+          'Paris': 'PAR',
+          'Kyoto': 'OSA',      
+          'New York': 'NYC',
+          'London': 'LON',
+          'Tokyo': 'TYO',
+          'Dubai': 'DXB',
+          'Singapore': 'SIN',
+          'Los Angeles': 'LAX',
+          'Madrid': 'MAD',
+          'Barcelona': 'BCN',
+          'Rome': 'ROM',
+          'Amsterdam': 'AMS'
+        };
+
+        const cityCode = cityCodeMap[destination.city] || 
+                        destination.cityCode || 
+                        destination.city.substring(0, 3).toUpperCase();
+        
+        console.log(`🔍 Searching hotels in ${cityCode} (${destination.city})`);
+        
+        const hotelData = await searchHotels(cityCode);
+        
+        
+        if (hotelData.length === 0) {
+          console.log('⚠️ No real hotels found, using example data');
+          setUsingMockData(true);
+          
+
+          const today = new Date();
+          const checkIn = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+          const checkOut = new Date(today.getTime() + 8 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0];
+          
+          setHotels([
+            {
+              id: 'example-hotel-1',
+              name: `Hotel Le ${destination.city}`,
+              price: 120,
+              currency: 'USD',
+              rating: 4.5,
+              checkIn: checkIn,
+              checkOut: checkOut
+            },
+            {
+              id: 'example-hotel-2',
+              name: `Grand ${destination.city} Hotel`,
+              price: 175,
+              currency: 'USD',
+              rating: 4.8,
+              checkIn: checkIn,
+              checkOut: checkOut
+            },
+            {
+              id: 'example-hotel-3',
+              name: `${destination.city} Plaza`,
+              price: 95,
+              currency: 'USD',
+              rating: 4.2,
+              checkIn: checkIn,
+              checkOut: checkOut
+            }
+          ]);
+        } else {
+          setHotels(hotelData);
+        }
+      } catch (err) {
+        console.error('Error fetching hotels:', err);
+        setError('Unable to load hotel data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHotels();
+  }, [destination]);
 
   const handleAddHotel = (hotel) => {
-
     if (onAddToTrip) {
       onAddToTrip({
         ...hotel,
         type: 'hotel',
-        details: `⭐ ${hotel.rating} / 5`,
-        date: 'Select check-in date'
+        details: `⭐ ${hotel.rating.toFixed(1)} / 5 • Check-in: ${hotel.checkIn}`,
+        date: `Check-in: ${hotel.checkIn}`
       });
     }
   };
 
+  
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">🏨</div>
+        <p className="text-gray-600">Searching for hotels...</p>
+      </div>
+    );
+  }
+
+  
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">🏨</div>
+        <p className="text-gray-600">{error}</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Please try again later
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h3 className="text-2xl font-bold text-gray-800 mb-4">
-        Hotel Options
+        Hotels in {destination.city}
       </h3>
+      
+      
+      {usingMockData && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-yellow-800">
+            ℹ️ Showing example hotel data. The Amadeus test API has limited coverage.
+          </p>
+        </div>
+      )}
+      
+      <p className="text-sm text-gray-600 mb-4">
+        Showing hotels for 1 night, check-in 7 days from now
+      </p>
+      
       <div className="space-y-4">
-        {mockHotels.map((hotel) => (
+        {hotels.map((hotel) => (
           <div
             key={hotel.id}
             className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition"
@@ -250,20 +446,25 @@ function HotelsTab({ destination, onAddToTrip }) {
                 <p className="font-semibold text-gray-800">{hotel.name}</p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="text-yellow-500">⭐</span>
-                  <span className="text-sm text-gray-600">{hotel.rating} / 5</span>
+                  <span className="text-sm text-gray-600">
+                    {hotel.rating.toFixed(1)} / 5
+                  </span>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {hotel.checkIn} to {hotel.checkOut}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <span className="bg-green-100 text-green-600 px-3 py-1 rounded font-semibold">
-                  From ${hotel.price}
+                  ${hotel.price}
                 </span>
                 <p className="text-xs text-gray-500 mt-1">per night</p>
               </div>
               <button
                 onClick={() => handleAddHotel(hotel)}
-                className="bg-secondary text-white px-4 py-2 rounded bg-blue-700 transition"
+                className="bg-secondary text-white px-4 py-2 rounded hover:bg-blue-700 transition"
               >
                 Add to Trip
               </button>
